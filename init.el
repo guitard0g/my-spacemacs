@@ -43,14 +43,34 @@ values."
      git
      markdown
      org
+     bibtex
      (shell :variables
             shell-default-height 30
+            shell-default-shell 'multi-term
+            shell-default-term-shell "/usr/bin/zsh"
+            shell-default-full-span nil
+            shell-enable-smart-eshell t
             shell-default-position 'bottom)
      spell-checking
      syntax-checking
      version-control
      c-c++
      perl6
+     scala
+     (java :variables
+           java-backend 'ensime)
+     html
+     javascript
+     json
+     (python :variables
+             python-sort-imports-on-save t
+             python-shell-interpreter "python3"
+             elpy-rpc-python-command "python3"
+             flycheck-python-pycompile-executable "python3"
+             python-pipenv-activate t
+             flycheck-python-pylint-executable "python3")
+     sql
+     (colors :variables colors-enable-nyan-cat-progress-bar t)
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -322,11 +342,6 @@ layers configuration.
 This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
-  ;; easier switching between windows with M-RET
-  (global-set-key [(meta return)] 'other-window)
-
-  ;; easier switching between windows with M-RET
-  (define-key evil-normal-state-map (kbd "M-.") nil)
 
   ;; RTAGS setup
   ;; ==========
@@ -354,11 +369,7 @@ you should place your code here."
     (global-company-mode)
     (define-key c-mode-base-map (kbd "<C-tab>") (function company-complete))
     ;; use rtags flycheck mode -- clang warnings shown inline
-    (require 'flycheck-rtags)
-    ;; c-mode-common-hook is also called by c++-mode
-    (add-hook 'c-mode-common-hook #'setup-flycheck-rtags))
-
-
+    (require 'flycheck-rtags))
 
   ;; c/c++ setup
   ;; ===========
@@ -371,7 +382,64 @@ you should place your code here."
   (defun clang-format-bindings ()
     (define-key c++-mode-map [tab] 'clang-format-buffer))
 
+  ;; change stupid keybindings
+  ;; =========================
+  ;; easier switching between windows with M-RET
+  (global-set-key [(meta return)] 'other-window)
+  ;; easier switching between windows with M-RET
+  (define-key evil-normal-state-map (kbd "M-.") nil)
+  (define-key evil-motion-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
+  (define-key evil-insert-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
+  (define-key evil-insert-state-map (kbd "C-a") 'mwim-beginning-of-code-or-line)
+  (define-key evil-insert-state-map (kbd "C-f") 'evil-force-normal-state)
 
+  ;; fix C-r/a/e in term mode
+  ;; ========================
+  (defun bb/setup-term-mode ()
+    (evil-local-set-key 'insert (kbd "C-r") 'bb/send-C-r)
+    (evil-local-set-key 'insert (kbd "C-e") 'bb/send-C-e)
+    (evil-local-set-key 'insert (kbd "C-a") 'bb/send-C-a)
+    (evil-local-set-key 'insert (kbd "C-c") 'bb/send-C-c)
+    (evil-local-set-key 'insert (kbd "C-f") 'bb/send-C-f)
+    )
+  (defun bb/send-C-r ()
+    (interactive)
+    (term-send-raw-string "\C-r"))
+  (defun bb/send-C-e ()
+    (interactive)
+    (term-send-raw-string "\C-e"))
+  (defun bb/send-C-a ()
+    (interactive)
+    (term-send-raw-string "\C-a"))
+  (defun bb/send-C-c ()
+    (interactive)
+    (term-send-raw-string "\C-c"))
+  (defun bb/send-C-f ()
+    (interactive)
+    (term-send-raw-string "\C-f"))
+  (add-hook 'term-mode-hook 'bb/setup-term-mode)
+
+  ;; enable rainbow mode on all code
+  (add-hook 'prog-mode-hook 'rainbow-mode)
+
+  ;; emmet mode keybindings
+  (defun bb/setup-emmet-mode ()
+    (evil-local-set-key 'insert (kbd "C-n") 'emmet-next-edit-point)
+    (evil-local-set-key 'normal (kbd "C-n") 'emmet-next-edit-point)
+    (evil-local-set-key 'insert (kbd "C-b") 'emmet-prev-edit-point)
+    (evil-local-set-key 'normal (kbd "C-b") 'emmet-prev-edit-point)
+    )
+  (add-hook 'emmet-mode-hook 'bb/setup-emmet-mode)
+
+  ;; enable auto complete popup
+  (setq auto-completion-enable-snippets-in-popup t)
+
+  ;; ORG mode
+  ;; ========
+  (with-eval-after-load 'org
+    ;; here goes your Org config :)
+    ;; ....
+    )
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -383,7 +451,7 @@ you should place your code here."
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
+    (xterm-color unfill smeargle shell-pop orgit org-category-capture org-present gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-popup magit htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct pos-tip flycheck transient git-commit with-editor eshell-z eshell-prompt-extras esh-help disaster diff-hl company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -402,7 +470,8 @@ This function is called at the very end of Spacemacs initialization."
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (perl6-mode doom-modeline swiper ivy magit git-commit treemacs spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
+    (org-ref pdf-tools key-chord tablist helm-bibtex parsebib biblio biblio-core xterm-color unfill smeargle shell-pop orgit org-category-capture org-present gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-popup magit htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct pos-tip flycheck transient git-commit with-editor eshell-z eshell-prompt-extras esh-help disaster diff-hl company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+ '(python-shell-interpreter "python"))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
