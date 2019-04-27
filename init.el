@@ -37,12 +37,16 @@ values."
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
      helm
+     (debug :variables
+            debug-additional-debuggers '("pdb" "ipdb" "trepan2" "trepan3k"))
      auto-completion
      better-defaults
      emacs-lisp
      git
      markdown
-     org
+     (org :variables
+          org-enable-github-support t
+          org-projectile-file "TODOs.org")
      bibtex
      (shell :variables
             shell-default-height 30
@@ -57,6 +61,7 @@ values."
      c-c++
      perl6
      scala
+     ocaml
      (java :variables
            java-backend 'ensime)
      html
@@ -76,7 +81,7 @@ values."
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
-   dotspacemacs-additional-packages '()
+   dotspacemacs-additional-packages '(realgud realgud-pry)
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -327,6 +332,7 @@ values."
    ))
 
 (defun dotspacemacs/user-init ()
+  (setq evil-want-abbrev-expand-on-insert-exit nil)
   "Initialization function for user code.
 It is called immediately after `dotspacemacs/init', before layer configuration
 executes.
@@ -440,6 +446,86 @@ you should place your code here."
     ;; here goes your Org config :)
     ;; ....
     )
+  (with-eval-after-load 'org-agenda
+    (require 'org-projectile)
+    (mapcar '(lambda (file)
+               (when (file-exists-p file)
+                 (push file org-agenda-files)))
+            (org-projectile-todo-files)))
+
+
+  ;; Tell if a function name matches a regex :o
+  ;; (defun is-debugger-cmd (cmd)
+  ;;   (ignore-errors
+  ;;     (string-match-p (regexp-quote ":cmd-") (symbol-name cmd)))
+  ;;   )
+  ;; (realgud-populate-src-buffer-map pdb-short-key-mode-map)
+  ;; (setq tempmap (copy-keymap pdb-short-key-mode-map))
+
+  ;; Fun little snippet to iterate over a keymap and wrap each
+  ;; command with an extra command to run before it.
+  ;; Never ended up using this though :(
+  ;;
+  ;; (map-keymap
+  ;;  (lambda (key cmd)
+  ;;    ( if (is-debugger-cmd cmd)
+  ;;        (define-key
+  ;;          tempmap
+  ;;          (vector key)
+  ;;          (lambda ()
+  ;;            (with-current-buffer (current-buffer) (cmd))))
+  ;;      nil))
+  ;;  pdb-short-key-mode-map)
+  ;; (setq pdb-short-key-mode-map tempmap)
+
+  ;; TODO blog about this!
+  (defun run-with-pdb-force (arg)
+    "Insert a set trace at the start of your buffer then call run-with-pdb"
+    (interactive "P")
+    (save-excursion
+      (goto-char 0)
+      (insert "import pdb; pdb.set_trace()")
+      (newline)
+      (save-buffer))
+    (run-with-pdb arg))
+
+
+  (defun run-with-pdb (arg)
+    "Run current python buffer and hook up to realgud:pdb"
+    (interactive "P")
+    (with-current-buffer (current-buffer)
+      (spacemacs/python-execute-file arg)
+      (with-current-buffer (get-buffer "*compilation*")
+        (realgud:track-set-debugger "pdb")
+        (realgud-track-mode))))
+
+
+  (defun pdb-setup ()
+    "setup function to make ipdb and realgud play nice."
+    (setq realgud-safe-mode nil)
+    (spacemacs/set-leader-keys "m d d" 'run-with-pdb)
+    (spacemacs/set-leader-keys "m d D" 'run-with-pdb-force))
+
+  (add-hook 'python-mode-hook 'pdb-setup)
+
+  ;; set path so that proper $PATH is passed to child processes
+  (let ((path (shell-command-to-string ". ~/.zshrc; echo -n $PATH")))
+    (setenv "PATH" path)
+    (setq exec-path
+          (append
+           (split-string-and-unquote path ":")
+           exec-path)))
+
+  ;; ex commands
+  (evil-define-command my-abbrev (arg)
+    (interactive "<a>")
+    (setq-local args (split-string arg))
+    (define-abbrev global-abbrev-table (pop args) (pop args)))
+  (evil-ex-define-cmd "ab[breviate]" 'my-abbrev)
+
+  ;; abbrev mode
+  (setq-default abbrev-mode t)
+  (setq abbrev-file-name "~/.spacemacs.d/emacs_abbrev.el")
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -468,9 +554,10 @@ This function is called at the very end of Spacemacs initialization."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(org-agenda-files (quote ("~/org/notes.org")))
  '(package-selected-packages
    (quote
-    (org-ref pdf-tools key-chord tablist helm-bibtex parsebib biblio biblio-core xterm-color unfill smeargle shell-pop orgit org-category-capture org-present gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-popup magit htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct pos-tip flycheck transient git-commit with-editor eshell-z eshell-prompt-extras esh-help disaster diff-hl company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+    (lsp-pyre realgud-pry xterm-color unfill smeargle shell-pop orgit org-category-capture org-present gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-popup magit htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct pos-tip flycheck transient git-commit with-editor eshell-z eshell-prompt-extras esh-help disaster diff-hl company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
  '(python-shell-interpreter "python"))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
