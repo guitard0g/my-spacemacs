@@ -39,7 +39,9 @@ values."
      helm
      (debug :variables
             debug-additional-debuggers '("pdb" "ipdb" "trepan2" "trepan3k"))
-     auto-completion
+     (auto-completion :variables
+            auto-completion-enable-snippets-in-popup t)
+
      better-defaults
      emacs-lisp
      git
@@ -58,7 +60,8 @@ values."
      spell-checking
      syntax-checking
      version-control
-     c-c++
+     (c-c++ :variables
+            c-c++-enable-clang-support t)
      perl6
      scala
      ocaml
@@ -379,8 +382,6 @@ you should place your code here."
 
   ;; c/c++ setup
   ;; ===========
-  (setq-default dotspacemacs-configuration-layers
-                '((c-c++ :variables c-c++-enable-clang-support t)))
   ;; Bind clang-format-region to C-M-tab in all modes:
   (global-set-key [C-M-tab] 'clang-format-region)
   ;; Bind clang-format-buffer to tab on the c++-mode only:
@@ -437,8 +438,6 @@ you should place your code here."
     )
   (add-hook 'emmet-mode-hook 'bb/setup-emmet-mode)
 
-  ;; enable auto complete popup
-  (setq auto-completion-enable-snippets-in-popup t)
 
   ;; ORG mode
   ;; ========
@@ -520,12 +519,15 @@ you should place your code here."
   (evil-define-command my-abbrev (arg)
     (interactive "<a>")
     (setq-local args (split-string arg))
-    (define-abbrev global-abbrev-table (pop args) (pop args)))
+    (if (< (length args) 2)
+        (error "Too few arguments.")
+      (define-abbrev global-abbrev-table (pop args) (string-join args " "))))
   (evil-ex-define-cmd "ab[breviate]" 'my-abbrev)
 
   ;; abbrev mode
   (setq-default abbrev-mode t)
   (setq abbrev-file-name "~/.spacemacs.d/emacs_abbrev.el")
+  (spacemacs/set-leader-keys "o a e" 'edit-abbrevs)
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
