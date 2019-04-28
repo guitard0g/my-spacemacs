@@ -398,7 +398,7 @@ you should place your code here."
   (define-key evil-motion-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
   (define-key evil-insert-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
   (define-key evil-insert-state-map (kbd "C-a") 'mwim-beginning-of-code-or-line)
-  (define-key evil-insert-state-map (kbd "C-f") 'evil-force-normal-state)
+  (define-key evil-insert-state-map (kbd "C-f") 'evil-normal-state)
 
   ;; fix C-r/a/e in term mode
   ;; ========================
@@ -479,7 +479,7 @@ you should place your code here."
 
   ;; TODO blog about this!
   (defun run-with-pdb-force (arg)
-    "Insert a set trace at the start of your buffer then call run-with-pdb"
+    "Insert a set_trace at the start of your buffer then call run-with-pdb"
     (interactive "P")
     (save-excursion
       (goto-char 0)
@@ -514,7 +514,6 @@ you should place your code here."
           (append
            (split-string-and-unquote path ":")
            exec-path)))
-
   ;; ex commands
   (evil-define-command my-abbrev (arg)
     (interactive "<a>")
@@ -522,12 +521,18 @@ you should place your code here."
     (if (< (length args) 2)
         (error "Too few arguments.")
       (define-abbrev global-abbrev-table (pop args) (string-join args " "))))
-  (evil-ex-define-cmd "ab[breviate]" 'my-abbrev)
 
+
+  (evil-ex-define-cmd "ab[breviate]" 'my-abbrev)
   ;; abbrev mode
   (setq-default abbrev-mode t)
   (setq abbrev-file-name "~/.spacemacs.d/emacs_abbrev.el")
   (spacemacs/set-leader-keys "o a e" 'edit-abbrevs)
+
+
+  ;; load source files
+  (add-to-list 'load-path "/usr/share/doc/emacs26-el")
+
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
