@@ -84,7 +84,7 @@ values."
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
-   dotspacemacs-additional-packages '(realgud realgud-pry)
+   dotspacemacs-additional-packages '(realgud realgud-pry evil-easymotion)
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -352,6 +352,45 @@ This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
 
+  ;; GENERAL SETUP
+  ;; =============
+  ;; <requires>
+  (require 'realgud) ;; because it doesn't include everything by default
+  ;; </requires>
+
+  ;; change stupid keybindings
+  ;; =========================
+  ;; easier switching between windows with M-RET
+  (global-set-key [(meta return)] 'other-window)
+  ;; easier switching between windows with M-RET
+  (define-key evil-normal-state-map (kbd "M-.") nil)
+  (define-key evil-normal-state-map (kbd "s") nil)
+  (define-key evil-motion-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
+  (define-key evil-insert-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
+  (define-key evil-insert-state-map (kbd "C-a") 'mwim-beginning-of-code-or-line)
+  (define-key evil-insert-state-map (kbd "C-f") 'evil-normal-state)
+  (define-key evil-motion-state-map (kbd "C-f") 'keyboard-quit)
+  (global-set-key (kbd "C-s") 'save-buffer)
+
+  ;; enable rainbow mode on all code
+  (add-hook 'prog-mode-hook 'rainbow-mode)
+
+  ;; stop truncating my code >:(
+  (setq-default truncate-lines t)
+
+  ;; set path so that proper $PATH is passed to child processes
+  (let ((path (shell-command-to-string ". ~/.zshrc; echo -n $PATH")))
+    (setenv "PATH" path)
+    (setq exec-path
+          (append
+           (split-string-and-unquote path ":")
+           exec-path)))
+
+  ;; END GENERAL SETUP
+  ;; =================
+
+  ;; MODE SPECIFIC SETUP
+  ;; ===================
   ;; RTAGS setup
   ;; ==========
   (when (require 'rtags nil :noerror)
@@ -389,17 +428,6 @@ you should place your code here."
   (defun clang-format-bindings ()
     (define-key c++-mode-map [tab] 'clang-format-buffer))
 
-  ;; change stupid keybindings
-  ;; =========================
-  ;; easier switching between windows with M-RET
-  (global-set-key [(meta return)] 'other-window)
-  ;; easier switching between windows with M-RET
-  (define-key evil-normal-state-map (kbd "M-.") nil)
-  (define-key evil-motion-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
-  (define-key evil-insert-state-map (kbd "C-e") 'mwim-end-of-code-or-line)
-  (define-key evil-insert-state-map (kbd "C-a") 'mwim-beginning-of-code-or-line)
-  (define-key evil-insert-state-map (kbd "C-f") 'evil-normal-state)
-
   ;; fix C-r/a/e in term mode
   ;; ========================
   (defun bb/setup-term-mode ()
@@ -407,7 +435,6 @@ you should place your code here."
     (evil-local-set-key 'insert (kbd "C-e") 'bb/send-C-e)
     (evil-local-set-key 'insert (kbd "C-a") 'bb/send-C-a)
     (evil-local-set-key 'insert (kbd "C-c") 'bb/send-C-c)
-    (evil-local-set-key 'insert (kbd "C-f") 'bb/send-C-f)
     )
   (defun bb/send-C-r ()
     (interactive)
@@ -421,13 +448,7 @@ you should place your code here."
   (defun bb/send-C-c ()
     (interactive)
     (term-send-raw-string "\C-c"))
-  (defun bb/send-C-f ()
-    (interactive)
-    (term-send-raw-string "\C-f"))
   (add-hook 'term-mode-hook 'bb/setup-term-mode)
-
-  ;; enable rainbow mode on all code
-  (add-hook 'prog-mode-hook 'rainbow-mode)
 
   ;; emmet mode keybindings
   (defun bb/setup-emmet-mode ()
@@ -437,7 +458,6 @@ you should place your code here."
     (evil-local-set-key 'normal (kbd "C-b") 'emmet-prev-edit-point)
     )
   (add-hook 'emmet-mode-hook 'bb/setup-emmet-mode)
-
 
   ;; ORG mode
   ;; ========
@@ -453,30 +473,8 @@ you should place your code here."
             (org-projectile-todo-files)))
 
 
-  ;; Tell if a function name matches a regex :o
-  ;; (defun is-debugger-cmd (cmd)
-  ;;   (ignore-errors
-  ;;     (string-match-p (regexp-quote ":cmd-") (symbol-name cmd)))
-  ;;   )
-  ;; (realgud-populate-src-buffer-map pdb-short-key-mode-map)
-  ;; (setq tempmap (copy-keymap pdb-short-key-mode-map))
-
-  ;; Fun little snippet to iterate over a keymap and wrap each
-  ;; command with an extra command to run before it.
-  ;; Never ended up using this though :(
-  ;;
-  ;; (map-keymap
-  ;;  (lambda (key cmd)
-  ;;    ( if (is-debugger-cmd cmd)
-  ;;        (define-key
-  ;;          tempmap
-  ;;          (vector key)
-  ;;          (lambda ()
-  ;;            (with-current-buffer (current-buffer) (cmd))))
-  ;;      nil))
-  ;;  pdb-short-key-mode-map)
-  ;; (setq pdb-short-key-mode-map tempmap)
-
+  ;; PDB REALGUD SETUP
+  ;; =================
   ;; TODO blog about this!
   (defun run-with-pdb-force (arg)
     "Insert a set_trace at the start of your buffer then call run-with-pdb"
@@ -488,7 +486,6 @@ you should place your code here."
       (save-buffer))
     (run-with-pdb arg))
 
-
   (defun run-with-pdb (arg)
     "Run current python buffer and hook up to realgud:pdb"
     (interactive "P")
@@ -497,24 +494,14 @@ you should place your code here."
       (with-current-buffer (get-buffer "*compilation*")
         (realgud:track-set-debugger "pdb")
         (realgud-track-mode))))
-
-
   (defun pdb-setup ()
     "setup function to make ipdb and realgud play nice."
     (setq realgud-safe-mode nil)
     (spacemacs/set-leader-keys "m d d" 'run-with-pdb)
     (spacemacs/set-leader-keys "m d D" 'run-with-pdb-force))
-
   (add-hook 'python-mode-hook 'pdb-setup)
 
-  ;; set path so that proper $PATH is passed to child processes
-  (let ((path (shell-command-to-string ". ~/.zshrc; echo -n $PATH")))
-    (setenv "PATH" path)
-    (setq exec-path
-          (append
-           (split-string-and-unquote path ":")
-           exec-path)))
-  ;; ex commands
+  ;; EX COMMANDS
   (evil-define-command my-abbrev (arg)
     (interactive "<a>")
     (setq-local args (split-string arg))
@@ -522,16 +509,11 @@ you should place your code here."
         (error "Too few arguments.")
       (define-abbrev global-abbrev-table (pop args) (string-join args " "))))
 
-
   (evil-ex-define-cmd "ab[breviate]" 'my-abbrev)
   ;; abbrev mode
   (setq-default abbrev-mode t)
   (setq abbrev-file-name "~/.spacemacs.d/emacs_abbrev.el")
   (spacemacs/set-leader-keys "o a e" 'edit-abbrevs)
-
-
-  ;; load source files
-  (add-to-list 'load-path "/usr/share/doc/emacs26-el")
 
   )
 
@@ -564,7 +546,7 @@ This function is called at the very end of Spacemacs initialization."
  '(org-agenda-files (quote ("~/org/notes.org")))
  '(package-selected-packages
    (quote
-    (lsp-pyre realgud-pry xterm-color unfill smeargle shell-pop orgit org-category-capture org-present gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-popup magit htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct pos-tip flycheck transient git-commit with-editor eshell-z eshell-prompt-extras esh-help disaster diff-hl company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+    (evil-easymotion xterm-color unfill smeargle shell-pop orgit org-category-capture org-present gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-popup magit htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct pos-tip flycheck transient git-commit with-editor eshell-z eshell-prompt-extras esh-help disaster diff-hl company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
  '(python-shell-interpreter "python"))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -573,3 +555,30 @@ This function is called at the very end of Spacemacs initialization."
  ;; If there is more than one, they won't work right.
  )
 )
+
+
+;; SAVE SPACE
+
+;; Tell if a function name matches a regex :o
+;; (defun is-debugger-cmd (cmd)
+;;   (ignore-errors
+;;     (string-match-p (regexp-quote ":cmd-") (symbol-name cmd)))
+;;   )
+;; (realgud-populate-src-buffer-map pdb-short-key-mode-map)
+;; (setq tempmap (copy-keymap pdb-short-key-mode-map))
+
+;; Fun little snippet to iterate over a keymap and wrap each
+;; command with an extra command to run before it.
+;; Never ended up using this though :(
+;;
+;; (map-keymap
+;;  (lambda (key cmd)
+;;    ( if (is-debugger-cmd cmd)
+;;        (define-key
+;;          tempmap
+;;          (vector key)
+;;          (lambda ()
+;;            (with-current-buffer (current-buffer) (cmd))))
+;;      nil))
+;;  pdb-short-key-mode-map)
+;; (setq pdb-short-key-mode-map tempmap)
