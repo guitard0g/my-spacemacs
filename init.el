@@ -174,12 +174,11 @@ values."
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
    dotspacemacs-default-font '("Source Code Pro"
-                               :size 16
+                               :size 13
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
-   ;; The leader key
-   dotspacemacs-leader-key "SPC"
+   ;; The leader key dotspacemacs-leader-key "SPC"
    ;; The key used for Emacs commands (M-x) (after pressing on the leader key).
    ;; (default "SPC")
    dotspacemacs-emacs-command-key "SPC"
@@ -377,6 +376,9 @@ you should place your code here."
 
   ;; stop truncating my code >:(
   (setq-default truncate-lines t)
+
+  ;; evil-surround enable
+  (global-evil-surround-mode 1)
 
   ;; set path so that proper $PATH is passed to child processes
   (let ((path (shell-command-to-string ". ~/.zshrc; echo -n $PATH")))
